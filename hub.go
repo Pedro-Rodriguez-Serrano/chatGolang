@@ -1,5 +1,7 @@
 package main
 
+//TODO: comentar
+
 import "fmt"
 
 // Hub mantiene los clientes conectados y reparte los mensajes.
