@@ -1,6 +1,6 @@
-package main
+// Esta clase es el centro de control del chat. Guarda quién está conectado y reparte los mensajes.
 
-//TODO: comentar
+package main
 
 import "fmt"
 
@@ -25,17 +25,23 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
+		// Si entra un cliente, lo añade al mapa y reparte a todos (incluido él) un mensaje de sistema.
 		case c := <-h.register:
 			h.clients[c] = true
 			h.send(systemMessage(fmt.Sprintf("%s se unió (%d conectados)", c.Name, len(h.clients))))
 
+		// caso de que sale un cliente
 		case c := <-h.unregister:
+			// Comprueba que el cliente siga en el mapa. Es necesario porque podría haber sido expulsado
+			// antes por send (por ser lento) y entonces ya no está; sin esta comprobación se haría close
+			// dos veces sobre el mismo canal, lo que provoca un panic.
 			if h.clients[c] {
-				delete(h.clients, c)
-				close(c.send)
+				delete(h.clients, c) // lo quita del mapa
+				close(c.send)        // cierra su canal de salida.
 				h.send(systemMessage(fmt.Sprintf("%s salió (%d conectados)", c.Name, len(h.clients))))
 			}
 
+		// Si llega un mensaje de chat, lo envia a todos
 		case msg := <-h.broadcast:
 			h.send(msg)
 		}

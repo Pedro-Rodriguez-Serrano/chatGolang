@@ -39,8 +39,6 @@ type incoming struct {
 	Text string `json:"text"`
 }
 
-//TODO:
-
 // goroutine que escucha a un cliente. Se queda en un bucle leyendo los mensajes que llegan por
 // su WebSocket, los limpia y se los pasa al Hub para que los reparta.
 // Cuando la conexión se rompe o el cliente se va, el bucle termina y la función
@@ -63,6 +61,7 @@ func (cliente *Client) readPump() {
 
 	//“si en 60 segundos (pongWait) no llega nada, da error de lectura”.
 	cliente.conn.SetReadDeadline(time.Now().Add(pongWait))
+
 	//se ejecuta cada vez que llega un pong del navegador. Un pong es la respuesta
 	// automática del navegador a los pings que manda writePump cada 54 segundos.
 	// Cada pong renueva el plazo otros 60 segundos.
@@ -78,7 +77,7 @@ func (cliente *Client) readPump() {
 	for {
 		var in incoming
 
-		//bloquea hasta que llega un mensaje, y lo convierte del JSON
+		//bloquea hasta que llega un mensaje, y lo convierte a JSON
 		//Si devuelve error (conexión cerrada, plazo vencido, mensaje demasiado grande o JSON inválido),
 		// hace return, lo que dispara el defer.
 		if err := cliente.conn.ReadJSON(&in); err != nil {
@@ -140,7 +139,9 @@ func (cliente *Client) writePump() {
 
 		// Cada 54 segundos se envía un ping. El navegador responde con un pong automáticamente,
 		// y ese pong llega a readPump, que con su PongHandler
-		// renueva el plazo de 60 segundos. Si el cliente no responde, readPump falla por timeout y se desregistra. Por eso pingPeriod (54 s) es menor que pongWait (60 s): el ping tiene que salir antes de que venza el plazo.
+		// renueva el plazo de 60 segundos. Si el cliente no responde, readPump falla por timeout y
+		// se desregistra. Por eso pingPeriod (54 s) es menor que pongWait (60 s): el ping tiene
+		// que salir antes de que venza el plazo.
 		case <-ticker.C:
 			cliente.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := cliente.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
